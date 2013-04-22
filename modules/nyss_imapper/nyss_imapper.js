@@ -2,7 +2,103 @@ var messages = [];
 var contacts = [];
 
 cj(document).ready(function(){
+  imap();
+});
 
+var dialogs = {
+  //uses camelCase for objects because... that's how objects work in JS
+  defaultSettings: {
+    modal:true,
+    autoOpen: false,
+    resizable: false,
+    draggable: false
+  },
+  modals: {
+    helpPopup: {
+      selector: "#help-popup",
+      settings: {
+        width: 600
+      }
+    },
+    noFindMatch: {
+      selector: "#no_find_match",
+      settings: {
+        dialogClass: 'no_find_match',
+        width: 370
+      }
+    },
+    deleteConfirm: {
+      selector: "#delete-confirm",
+      settings: {
+        dialogClass: 'delete_popup_class',
+        width: 370
+      }
+    },
+    // add a clear conform popup
+    clearConfirm: {
+      selector: "#clear-confirm",
+      settings: {
+        width: 370
+      }
+    },
+    // add a find match popup
+    findMatchPopup: {
+      selector: "#find-match-popup",
+      settings: {
+        height: 580,
+        width: 960, // in ie the popup was overflowing
+        title: 'Loading Data',
+        buttons: {
+          Cancel: function() {
+            cj( this ).dialog( "close" );
+          }
+        }
+      }
+    },
+    // add a loading icon popup
+    loadingPopup: {
+      selector: "#loading-popup",
+      settings: {
+        width: 200,
+        title: 'Please Wait'
+      }
+    },
+    // add a reloading icon popup
+    reloadingPopup: {
+      selector: "#reloading-popup",
+      settings: {
+        width: 200,
+        title: 'Please Wait'
+      }
+    },
+    // add a tagging popup
+    taggingPopup: {
+      selector: "#tagging-popup",
+      settings: {
+        height: 565,
+        width: 960,
+        title: 'Loading Data'
+      }
+    },
+    matchCheckPopup: {
+      selector: "#matchCheck-popup",
+      settings: {
+        width: 200
+      }
+    },
+    fileBugPopup: {
+      selector: "#fileBug-popup",
+      settings: {
+        width: 500
+      }
+    }
+  }
+};
+
+cj.each(dialogs, function(i, dialogName){
+  cj(dialogName.selector).dialog(dialogName.settings);
+});
+var imap = function() {
   var first_name = cj('#tab1 .first_name').val();
   var last_name = cj('#tab1 .last_name').val();
   var city = cj('#tab1 .city').val();
@@ -30,108 +126,7 @@ cj(document).ready(function(){
   });
 
   // Dialogs
-  cj( "#help-popup" ).dialog({
-    modal: true,
-    width: 600,
-    autoOpen: false,
-    resizable: false,
-    draggable: false
-  });
-
-  // After we've already matched something
-  cj( "#no_find_match" ).dialog({
-    modal: true,
-    dialogClass: 'no_find_match',
-    width: 370,
-    autoOpen: false,
-    resizable: false,
-    draggable: false
-  });
-
-  // add a delete conform popup thats alarmingly red
-  cj( "#delete-confirm" ).dialog({
-    modal: true,
-    dialogClass: 'delete_popup_class',
-    width: 370,
-    autoOpen: false,
-    resizable: false,
-    draggable: false
-  });
-
-  // add a clear conform popup
-  cj( "#clear-confirm" ).dialog({
-    modal: true,
-    width: 370,
-    autoOpen: false,
-    resizable: false,
-    draggable: false
-  });
-
-
-
-  // add a find match popup
-  cj( "#find-match-popup" ).dialog({
-    modal: true,
-    height: 580,
-    width: 960, // in ie the popup was overflowing
-    autoOpen: false,
-    resizable: false,
-    title: 'Loading Data',
-    draggable: false,
-    buttons: {
-      Cancel: function() {
-        cj( this ).dialog( "close" );
-      }
-    }
-  });
-
-  // add a loading icon popup
-  cj( "#loading-popup" ).dialog({
-    modal: true,
-    width: 200,
-    autoOpen: false,
-    resizable: false,
-    title: 'Please Wait',
-    draggable: false
-  });
-
-  // add a reloading icon popup
-  cj( "#reloading-popup" ).dialog({
-    modal: true,
-    width: 200,
-    autoOpen: false,
-    resizable: false,
-    title: 'Please Wait',
-    draggable: false
-  });
-
-  // add a tagging popup
-  cj( "#tagging-popup" ).dialog({
-    modal: true,
-    height: 565,
-    width: 960,
-    autoOpen: false,
-    resizable: false,
-    title: 'Loading Data',
-    draggable: false
-  });
-
-  cj( "#matchCheck-popup" ).dialog({
-    modal: true,
-    width: 200,
-    autoOpen: false,
-    resizable: false,
-    draggable: false
-  });
-
-
-  cj( "#fileBug-popup" ).dialog({
-    modal: true,
-    width: 500,
-    autoOpen: false,
-    resizable: false,
-    draggable: false
-  });
+  
 
   // BOTH MATCHED & UNMATCHED
   // file a bug
@@ -944,8 +939,7 @@ cj(document).ready(function(){
     buildContactList(update);
     cj(this).remove();
   });
-
-});
+}
 
 function firstName(nameVal){
   if(nameVal){
@@ -1410,7 +1404,7 @@ function helpMessage(message){
   // fade out and remove after 60 seconds
   setTimeout(function(){
     cj("."+messageclass).fadeOut(1000, function(){
-      $(this).remove();
+      cj(this).remove();
     });
   }, 60000);
 }
@@ -1439,7 +1433,7 @@ function checkForMatch(key,contactIds){
     check = cj(this).data('key');
     var messageId = cj(this).attr('id');
     if (key == check) {
-      if($('.matchbubble.empty',this).length){
+      if(cj('.matchbubble.empty',this).length){
         cj.ajax({
           url: '/civicrm/imap/ajax/assignMessage',
           async:false,
