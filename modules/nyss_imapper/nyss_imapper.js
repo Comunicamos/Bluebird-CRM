@@ -1,8 +1,15 @@
+// dp : overall needs a bunch of organizing
+//    : grouping of functions, fixing a lot of the click events
+//    : to make more sense of where they are and what they do
+//    : proper usage of classes and objects are extremely important
+//    : because well... it'll fix the big coding issues of SPAGHETTI
+//    : http://i.istockimg.com/file_thumbview_approve/11642403/2/stock-photo-11642403-girl-with-spaghetti-on-head.jpg
+
 var messages = [];
 var contacts = [];
 
 cj(document).ready(function(){
-  imap();
+  inboxpolling();
 });
 
 var dialogs = {
@@ -89,16 +96,65 @@ var dialogs = {
     fileBugPopup: {
       selector: "#fileBug-popup",
       settings: {
-        width: 500
+        width: 500,
+        open:function () {
+          cj(this).closest(".ui-dialog").find(".ui-button:first").addClass("primary_button");
+        },
+        buttons: {
+          "Report Problem": function() {
+            cj.each(jQuery.browser, function(i, val) {
+              if(cj.browser.msie){
+                browsertype = "IE";
+              }else if(cj.browser.webkit){
+                browsertype = "Webkit";
+              }else if(cj.browser.opera){
+                browsertype = "Opera";
+              }else if(cj.browser.mozilla){
+                browsertype = "Mozilla";
+              }
+            });
+            var description = cj('#description').val();
+            var browser =  browsertype+" v."+(parseInt(cj.browser.version, 10) );
+            var id = cj('#id').val();
+            cj( this ).dialog( "close" );
+            /* 
+             * ajax methods can be offloaded into it's own function 
+             * a la: passing url, data, browser, and functions into a
+             * imap.ajax(url,data,success,error) sorta format
+            */
+            cj.ajax({
+              url: '/civicrm/imap/ajax/fileBug',
+              data: {
+                browser: browser,
+                id: id,
+                description: description
+              },
+              success: function(data,status) {
+                if(data !== null || data !== ''){
+                  helpMessage('Report Filed.');
+                }
+              }
+            });
+          },
+          Cancel: function() {
+            cj( this ).dialog( "close" );
+          }
+        }
       }
     }
   }
 };
 
-cj.each(dialogs, function(i, dialogName){
-  cj(dialogName.selector).dialog(dialogName.settings);
-});
-var imap = function() {
+
+/*
+ * Start at the very beginning
+ * #1 Closure var inboxpolling = function($) { }(cj); //actually cj could be any jquery 
+ * #2 that also creates IIFE, which works like a doc-ready
+ * #3 open up a namespace to IBP too... 
+ * #4 WE ARE FREE TO USE WHATEVER THE HECK JQ we want.
+ */
+var inboxpolling = function() {
+
   var first_name = cj('#tab1 .first_name').val();
   var last_name = cj('#tab1 .last_name').val();
   var city = cj('#tab1 .city').val();
@@ -112,6 +168,8 @@ var imap = function() {
   var reassign = cj('#reassign');
   var create = cj('#add-contact');
 
+
+  //ROUTING FUNCTION
   // onpageload
   if(cj("#Activities").length){
     getMatchedMessages();
@@ -121,12 +179,13 @@ var imap = function() {
     getReports();
     // console.log('reports');
   }
-  cj('#search_help').live('click', function() {
-    cj("#help-popup").dialog('open');
-  });
+
 
   // Dialogs
-  
+  cj.each(dialogs.modals, function(i, dialogName){
+    var settings = cj.extend(true, {}, dialogName.settings, dialogs.defaultSettings);
+    cj(dialogName.selector).dialog(settings);
+  });
 
   // BOTH MATCHED & UNMATCHED
   // file a bug
@@ -134,60 +193,29 @@ var imap = function() {
     cj("#fileBug-popup").dialog('open');
     cj('#description').val('');
   });
-
-  cj( "#fileBug-popup" ).dialog({
-    open:function () {
-      cj(this).closest(".ui-dialog").find(".ui-button:first").addClass("primary_button");
-    },
-    buttons: {
-      "Report Problem": function() {
-        cj.each(jQuery.browser, function(i, val) {
-          if(cj.browser.msie){
-            browsertype = "IE";
-          }else if(cj.browser.webkit){
-            browsertype = "Webkit";
-          }else if(cj.browser.opera){
-            browsertype = "Opera";
-          }else if(cj.browser.mozilla){
-            browsertype = "Mozilla";
-          }
-        });
-        var description = cj('#description').val();
-        var browser =  browsertype+" v."+(parseInt(cj.browser.version, 10) );
-        var id = cj('#id').val();
-        cj( this ).dialog( "close" );
-        cj.ajax({
-          url: '/civicrm/imap/ajax/fileBug',
-          data: {
-            browser: browser,
-            id: id,
-            description: description
-          },
-          success: function(data,status) {
-            if(data != null || data != ''){
-              helpMessage('Report Filed.');
-            }
-          }
-        });
-      },
-      Cancel: function() {
-        cj( this ).dialog( "close" );
-      }
-    }
+  //search_help
+  cj('#search_help').live('click', function() {
+    cj("#help-popup").dialog('open');
   });
 
-
+  //dp: this should be it's own function
   // search function in find_match and edit_match
   filter.live('click', function() {
     cj('#imapper-contacts-list').html('Searching...');
+
+    //dp: HOISTING. declaring all your vars at the top of a function, like here. in scope
+    //  : is the preferred methodology for declaring vars...
+    var first_name, last_name, city, phone, street_address, email_address, dob;
     // checks for deault data
-    if(cj('#tab1 .first_name').val() != "First Name"){ var first_name = cj('#tab1 .first_name').val();}
-    if(cj('#tab1 .last_name').val() != "Last Name"){ var last_name = cj('#tab1 .last_name').val();}
-    if(cj('#tab1 .city').val() != "City"){var city = cj('#tab1 .city').val();}
-    if(cj('#tab1 .phone').val() != "Phone Number"){var phone = cj('#tab1 .phone').val();}
-    if(cj('#tab1 .street_address').val() != "Street Address"){var street_address = cj('#tab1 .street_address').val();}
-    if(cj('#tab1 .email_address').val() != "Email Address"){var email_address = cj('#tab1 .email_address').val();}
-    if(cj('#tab1 .dob').val() != "yyyy-mm-dd"){var dob = cj('#tab1 .dob').val();}
+    if(cj('#tab1 .first_name').val() != "First Name"){  first_name = cj('#tab1 .first_name').val();}
+    if(cj('#tab1 .last_name').val() != "Last Name"){  last_name = cj('#tab1 .last_name').val();}
+    if(cj('#tab1 .city').val() != "City"){ city = cj('#tab1 .city').val();}
+    if(cj('#tab1 .phone').val() != "Phone Number"){ phone = cj('#tab1 .phone').val();}
+    if(cj('#tab1 .street_address').val() != "Street Address"){ street_address = cj('#tab1 .street_address').val();}
+    if(cj('#tab1 .email_address').val() != "Email Address"){ email_address = cj('#tab1 .email_address').val();}
+    if(cj('#tab1 .dob').val() != "yyyy-mm-dd"){ dob = cj('#tab1 .dob').val();}
+
+    //dp: part of me thinks this could be done differently... likely with using events.
     if((first_name) || (last_name) || (city) || (phone) || (street_address) || (email_address) || (dob)){
       cj.ajax({
         url: '/civicrm/imap/ajax/searchContacts',
@@ -203,7 +231,12 @@ var imap = function() {
           last_name: last_name
         },
         success: function(data,status) {
-          if(data != null || data != ''){
+          //dp: always use !== for comparisons to blank, null & 0.
+          //  : just good habit. forces the same type too.
+          //  : although having a documented function source of
+          //  : code might be reasonable. like, a data.isNull? .isEmpty?
+          //  : it's rubyish, but it'll save time and thought.
+          if(data !== null || data !== ''){
             contacts = cj.parseJSON(data);
             if(contacts.code == 'ERROR'){
               cj('#imapper-contacts-list').html(contacts.message);
@@ -221,12 +254,16 @@ var imap = function() {
     return false;
   });
 
+  // dp: own function
   // delete confirm & processing both pages
   cj(".delete").live('click', function() {
     var messageId = cj(this).parent().parent().attr('id');
     var contactId = cj(this).parent().parent().attr('data-contact_id');
     var row = cj(this).parent().parent();
 
+    // dp: setting context I think is really important... extending 
+    //   : activities from contacts and matched from unmatched
+    //   : will help organize the code better
     // reset the headers
     if(cj("#Activities").length){
       cj("#delete-confirm").dialog({ title:  "Delete this message from Matched Messages ?"});
@@ -234,6 +271,9 @@ var imap = function() {
       cj("#delete-confirm").dialog({ title:  "Delete this message from Unmatched Messages ?"});
     }
 
+    // dp: move this to the dialogs object. if you want to declare it differently
+    //   : you can change it inline. a standard method to call dialog boxes in here
+    //   : would be quite delicious.
     cj( "#delete-confirm" ).dialog({
       open:function () {
         cj(this).closest(".ui-dialog").find(".ui-button:first").addClass("primary_button");
@@ -256,16 +296,16 @@ var imap = function() {
     return false;
   });
 
-
+  // dp: own function
   // multi_delete confirm & processing both pages
   cj(".multi_delete").live('click', function() {
     cj("#loading-popup").dialog('open');
 
     // delete_ids = message id / activity id
-    var delete_ids = new Array();
+    var delete_ids = [];
     // delete_secondary = imap id / contact id
-    var delete_secondary = new Array();
-    var rows = new Array();
+    var delete_secondary = [];
+    var rows = [];
 
     cj('#imapper-messages-list input:checked').each(function() {
       delete_ids.push(cj(this).attr('name'));
@@ -284,6 +324,11 @@ var imap = function() {
     }else{
       cj("#delete-confirm").dialog({ title:  "Delete "+delete_ids.length+" messages from Unmatched Messages?"});
     }
+
+    // dp: see? MUCH LIKE LINE #270 cj ("delete-confirm")
+    //   : if the context slightly changes like, the delete button is different
+    //   : then you could just use the context you're in (which would be multi-delete)
+    //   : and delete confirm would just be called. with a different delete button
 
     cj( "#delete-confirm" ).dialog({
       open:function () {
@@ -317,6 +362,7 @@ var imap = function() {
     return false;
   });
 
+  // repetitive toggles
   // dirty toggles
   // toggle hidden email info in multi_tag popup
   cj(".hidden_email_info").live('click', function(){
@@ -345,6 +391,17 @@ var imap = function() {
 
 // UNMATCHED
 
+// UNMATCHED
+
+// UNMATCHED
+
+// UNMATCHED
+
+// UNMATCHED
+
+  // dp: assign and create are able to be merged.
+  //   : and the basic data model can be reused
+
   // assign a message to a contact Unmatched page
   assign.click(function() {
     var messageId = cj('#id').val();
@@ -353,12 +410,12 @@ var imap = function() {
 
     cj.each(contactRadios, function(idx, val) {
       if(cj(val).attr('checked')) {
-        if(contactIds != '')
+        if(contactIds !== '')
           contactIds = contactIds+',';
         contactIds = contactIds + cj(val).val();
       }
     });
-    if(contactIds !='' ){
+    if(contactIds !=='' ){
       cj.ajax({
         url: '/civicrm/imap/ajax/assignMessage',
         data: {
@@ -381,7 +438,7 @@ var imap = function() {
       return false;
     }else{
       alert("Please Choose a contact");
-    };
+    }
   });
 
   // create a new contact unmatched page
@@ -414,7 +471,7 @@ var imap = function() {
         },
         success: function(data, status) {
           contactData = cj.parseJSON(data);
-          if (contactData.code == 'ERROR' || contactData.code == '' || contactData == null ){
+          if (contactData.code == 'ERROR' || contactData.code === '' || contactData === null ){
             alert('Could Not Create Contact : '+contactData.message);
             return false;
           }else{
@@ -426,7 +483,7 @@ var imap = function() {
               },
               success: function(data, status) {
                 assign = cj.parseJSON(data);
-                if (assign.code == 'ERROR' || assign.code == '' || assign == null ){
+                if (assign.code == 'ERROR' || assign.code === '' || assign === null ){
                   alert('Could Not Assign Message : '+assign.message);
                   return false;
                 }else{
@@ -446,8 +503,13 @@ var imap = function() {
       return false;
     }else{
       alert("Required: First Name or Last Name or Email");
-    };
+    }
   });
+
+  // dp: just a thought, if we're using 1.7 or better JQ (which i think we can)
+  //   : using .on('eventType', 'selector (like find_match)', event) would
+  //   : be a faster method of arranging things.
+  //   : also, taking massive event functions out of .live events is good
 
   // opening find match window Unmatched
   cj(".find_match").live('click', function() {
@@ -469,10 +531,13 @@ var imap = function() {
           if(message.clear =='true')  removeRow(messageId);
           alert('Unable to load Message : '+ message.message);
         }else{
+          var name;
           var icon ='';
           if( message.attachmentfilename ||  message.attachmentname ||  message.attachment){
-            if(message.attachmentname ){var name = message.attachmentname}else{var name = message.attachmentfilename};
-            icon = '<div class="ui-icon ui-icon-link attachment" title="'+name+'"></div>'
+            // dp: semicolon missing
+
+            if(message.attachmentname ){ name = message.attachmentname;}else{ name = message.attachmentfilename;}
+            icon = '<div class="ui-icon ui-icon-link attachment" title="'+name+'"></div>';
           }
           cj('#message_left_header').html('');
           cj('#message_left_header').append("<span class='popup_def'>From: </span>");
@@ -521,17 +586,16 @@ var imap = function() {
     var contactIds = '';
     cj.each(contactRadios, function(idx, val) {
       if(cj(val).attr('checked')) {
-        if(contactIds != '')
+        if(contactIds !== '')
           contactIds = contactIds+',';
         contactIds = contactIds + cj(val).val();
       }
     });
 
-    if (contactIds =='' ){
+    if (contactIds === '' ){
       alert("Please select a contact");
       return false;
     }else{
-
     cj.ajax({
       url: '/civicrm/imap/ajax/reassignActivity',
       data: {
@@ -539,7 +603,8 @@ var imap = function() {
         change: contactIds
       },
       success: function(data, status) {
-        var data = cj.parseJSON(data);
+        // dp : redundant var declaration.
+        data = cj.parseJSON(data);
         if (data.code =='ERROR'){
           alert('Could not reassign Message : '+data.message);
         }else{
@@ -564,10 +629,15 @@ var imap = function() {
         alert('failure');
       }
     });
-    };
+    }
+    // dp : above closes else. but reassign below?? wacky. 
+
     return false;
     cj("#reassign").hide();
   });
+
+  // dp : again, break up the live action into something smaller and testable.
+  //    : and separate it from the click event.
   /// remove activity from the activities screen, but don't delete it Matched
   cj(".clear_activity").live('click', function() {
     cj("#loading-popup").dialog('open');
@@ -585,6 +655,9 @@ var imap = function() {
       }
     });
     cj("#clear-confirm").dialog({ title:  "Remove Message From List?"});
+    // dp : the loading popup can actually be a method in the open call
+    //    : like... ll 963 in bbtree.js, only with close instead of open
+    //    : although, you'd likely need both.
     cj("#loading-popup").dialog('close');
     cj("#clear-confirm").dialog('open');
     return false;
@@ -618,6 +691,8 @@ var imap = function() {
       url: '/civicrm/imap/ajax/getActivityDetails',
       data: {id: activityId, contact: contactId },
       success: function(data,status) {
+        // dp : if it's big enough to take up one screen, it's probably
+        //    : best as an individual function
         message = cj.parseJSON(data);
         if (message.code == 'ERROR'){
           alert('Could not load message Details: '+message.message);
@@ -677,6 +752,7 @@ var imap = function() {
     cj('.token-input-dropdown-facebook').html('').remove();
     cj('.token-input-list-facebook').html('').remove();
 
+    // dp : deep chained event here. could another something to look into
     cj.ajax({
       url: '/civicrm/imap/ajax/getActivityDetails',
       data: {id: activityId, contact: contactId },
@@ -779,8 +855,8 @@ var imap = function() {
   // opens the add_tag popup
   cj(".multi_tag").live('click', function() {
     cj("#loading-popup").dialog('open');
-    var contactIds = new Array();
-    var activityIds = new Array();
+    var contactIds = [];
+    var activityIds = [];
 
     cj('#imapper-messages-list input:checked').each(function() {
       activityIds.push(cj(this).attr('name'));
@@ -901,7 +977,7 @@ var imap = function() {
   // remove multiple activities
   cj(".multi_clear").live('click', function() {
     cj("#loading-popup").dialog('open');
-    var delete_ids = new Array();
+    var delete_ids = [];
 
     cj('#imapper-messages-list input:checked').each(function() {
       delete_ids.push(cj(this).attr('name'));
@@ -939,7 +1015,7 @@ var imap = function() {
     buildContactList(update);
     cj(this).remove();
   });
-}
+};
 
 function firstName(nameVal){
   if(nameVal){
@@ -957,8 +1033,7 @@ function lastName(nameVal){
     var nameSplit = nameVal.split(" ");
     var lastLength = nameLength - nameSplit[0].length;
     var lastNameLength = nameSplit[0].length + 1;
-    var lastName = nameVal.slice(lastNameLength);
-    return lastName;
+    return nameVal.slice(lastNameLength);
   }else{
     return 'N/A';
   }
@@ -1026,7 +1101,7 @@ function makeListSortable(){
     "bAutoWidth": false,
     "bInfo": false
   });
-  cj("#sortable_results_filter").append('<a id="search_help" href="#">help</a>')
+  cj("#sortable_results_filter").append('<a id="search_help" href="#">help</a>');
   checks();
 }
 
@@ -1047,6 +1122,7 @@ function checks(){
 }
 
 function buildMessageList() {
+  // dp: is it equal to STRING 0? or number 0?
   if(messages.stats.overview.Unprocessed == '0' || messages == null){
     cj('#imapper-messages-list').html('<td valign="top" colspan="7" class="dataTables_empty">No records found</td>');
     cj("#total_number").html('0');
@@ -1060,17 +1136,17 @@ function buildMessageList() {
         messagesHtml += '<tr id="'+value.id+'" data-key="'+value.key+'" class="imapper-message-box"> <td class="" ><input class="checkboxieout" type="checkbox" name="'+value.id+'"  data-id="'+value.id+'"/></td>';
 
         // build a match count bubble
-        countWarn = (value.matches_count == 1) ? 'warn' :  '';
-        countMessage = (value.matches_count == 1) ? 'This address should have matched automatically' : 'This email address matches '+value.matches_count+' records in bluebird';
-        countStatus = (value.matches_count == 0) ? 'empty' :  'multi';
+        countWarn = (value.matches_count === 1) ? 'warn' :  '';
+        countMessage = (value.matches_count === 1) ? 'This address should have matched automatically' : 'This email address matches '+value.matches_count+' records in bluebird';
+        countStatus = (value.matches_count === 0) ? 'empty' :  'multi';
         countIcon = '<span class="matchbubble marginL5 '+countWarn+' '+countStatus+'" title="'+countMessage+'">'+value.matches_count+'</span></td>';
 
 
         // build the name box
-        if( value.sender_name != ''  && value.sender_name != null){
+        if( value.sender_name !== ''  && value.sender_name !== null){
           messagesHtml += '<td class="name" data-firstName="'+firstName(value.sender_name)+'" data-lastName="'+lastName(value.sender_name)+'">'+shortenString(value.sender_name,20);
 
-          if( value.sender_email != '' && value.sender_email != null){
+          if( value.sender_email !== '' && value.sender_email !== null){
             messagesHtml += '<span class="emailbubble marginL5">'+shortenString(value.sender_email,15)+'</span>';
             messagesHtml +=  countIcon;
           }else{
@@ -1078,7 +1154,7 @@ function buildMessageList() {
           }
           messagesHtml +='</td>';
 
-        }else if( value.sender_email != '' && value.sender_email != null ){
+        }else if( value.sender_email !== '' && value.sender_email !== null ){
           messagesHtml += '<td class="name"><span class="emailbubble">'+shortenString(value.sender_email,25)+'</span>';
           messagesHtml +=  countIcon;
         }else {
@@ -1089,7 +1165,7 @@ function buildMessageList() {
         // dealing with attachments
         if(value.attachments){
           cj.each(value.attachments, function(key, attachment) {
-            icon = '<div class="icon attachment-icon attachment" title="'+value.attachments.length+' Attachments" ></div>'
+            icon = '<div class="icon attachment-icon attachment" title="'+value.attachments.length+' Attachments" ></div>';
           });
         }
         messagesHtml += '<td class="subject">'+shortenString(value.subject,40) +' '+icon+'</td>';
@@ -1097,16 +1173,16 @@ function buildMessageList() {
 
         // hidden column to sort by
         if(value.match_count != 1){
-          var match_short = (value.match_count == 0) ? "NoMatch" : "MultiMatch" ;
+          var match_short = (value.match_count === 0) ? "NoMatch" : "MultiMatch" ;
           messagesHtml += '<td class="match hidden"><span data="'+match_short+'">'+match_short +'</span></td>';
         }else{
           messagesHtml += '<td class="match hidden"><span data="Error">ProcessError</span></td>';
         }
 
         // check for direct messages & not empty forwarded messages
-        if((value.status == 'direct' ) && (value.forwarder != '')){
+        if((value.status == 'direct' ) && (value.forwarder !== '')){
           messagesHtml += '<td class="forwarder">Direct '+shortenString(value.from_email,10)+'</td>';
-        }else if(value.forwarder != ''){
+        }else if(value.forwarder !== ''){
           messagesHtml += '<td class="forwarder">'+shortenString(value.forwarder,14)+'</td>';
         }else{
           messagesHtml += '<td class="forwarder"> N/A </td>';
@@ -1139,11 +1215,11 @@ function DeleteMessage(id,imapid){
     data: {id: id },
     success: function(data,status) {
       deleted = cj.parseJSON(data);
-      if(deleted.code == 'ERROR' || deleted.code == '' || deleted.code == null){
+      if(deleted.code == 'ERROR' || deleted.code === '' || deleted.code === null){
         if(deleted.clear =='true')  removeRow(id);
         alert('Unable to Delete Message : '+deleted.message);
       }else{
-        removeRow(id); ;
+        removeRow(id);
         helpMessage('Message Deleted');
       }
     },
@@ -1178,6 +1254,8 @@ function ClearActivity(value){
   });
 }
 
+
+// dp : literally have seen this 5 times! 
 // Delete activities
 // args : value = activity ID
 // Result : A few things
@@ -1189,7 +1267,7 @@ function DeleteActivity(value){
     data: {id: value},
     success: function(data,status) {
       deleted = cj.parseJSON(data);
-      if(deleted.code == 'ERROR' || deleted.code == '' || deleted.code == null){
+      if(deleted.code == 'ERROR' || deleted.code === '' || deleted.code === null){
         if(deleted.clear =='true')  removeRow(value);
         alert('Unable to Delete Activity : '+deleted.message);
       }else{
@@ -1224,7 +1302,7 @@ function pushtag(clear){
     activity_tag_ids = activity_input;
   }
 
-  if (activity_tag_ids =='' && contact_tag_ids == ''){
+  if (activity_tag_ids === '' && contact_tag_ids === ''){
     alert("please select a tag");
     return false;
   }else{
@@ -1286,7 +1364,8 @@ function pushtag(clear){
 
 // matched messages screen
 function buildActivitiesList() {
-  if(messages.stats.overview.successes == '0' || messages == null){
+  // dp : again, equal to 0 string or 0 number?
+  if(messages.stats.overview.successes == '0' || messages === null){
     cj('#imapper-messages-list').html('<td valign="top" colspan="7" class="dataTables_empty">No records found</td>');
     cj("#total_number").html('0');
   }else{
@@ -1294,10 +1373,10 @@ function buildActivitiesList() {
     var total_results = messages.stats.overview.successes;
     // console.log(messages);
     cj.each(messages.successes, function(key, value) {
-      if(value.date_short != null){
+      if(value.date_short !== null){
         messagesHtml += '<tr id="'+value.id+'" data-id="'+value.activity_id+'" data-contact_id="'+value.matched_to+'" class="imapper-message-box"> <td class="" ><input class="checkboxieout" type="checkbox" name="'+value.id+'" data-id="'+value.matched_to+'"/></td>';
 
-        if( value.contactType != ''){
+        if( value.contactType !== ''){
           messagesHtml += '<td class="name" data-firstName="'+value.firstName +'" data-lastName="'+value.lastName +'">';
           messagesHtml += '<a class="crm-summary-link" href="/civicrm/profile/view?reset=1&gid=13&id='+value.matched_to+'&snippet=4">';
           messagesHtml += '<div class="icon crm-icon '+value.contactType+'-icon"></div>';
@@ -1312,9 +1391,9 @@ function buildActivitiesList() {
 
         match_sort = 'ProcessError';
         if(value.matcher){
-          var match_string = (value.matcher != 0) ? "Manually matched by "+value.matcher_name : "Automatically Matched" ;
-          var match_short = (value.matcher != 0) ? "M" : "A" ;
-          match_sort = (value.matcher != 0) ? "ManuallyMatched" : "AutomaticallyMatched" ;
+          var match_string = (value.matcher !== 0) ? "Manually matched by "+value.matcher_name : "Automatically Matched" ;
+          var match_short = (value.matcher !== 0) ? "M" : "A" ;
+          match_sort = (value.matcher !== 0) ? "ManuallyMatched" : "AutomaticallyMatched" ;
           messagesHtml += '<span class="matchbubble marginL5 '+match_short+'" title="This email was '+match_string+'">'+match_short+'</span>';
         }
         messagesHtml +='</td>';
@@ -1347,19 +1426,20 @@ function buildContactList(loop) {
   cj('.search_info').html(html);
 
   for (var i = loop; i < contacts.length && i < loop+200; i++) {
+    var date = null, year = null, birth_year = null, age = null;
     // calculate the aprox age
     if(contacts[i].birth_date){
-      var date = new Date();
-      var year  = date.getFullYear();
-      var birth_year = contacts[i].birth_date.substring(0,4);
-      var age = year - birth_year;
+      date = new Date();
+      year  = date.getFullYear();
+      birth_year = contacts[i].birth_date.substring(0,4);
+      age = year - birth_year;
     }
     contactsHtml += '<div class="imapper-contact-box" data-id="'+contacts[i].id+'">';
     contactsHtml += '<div class="imapper-address-select-box">';
     contactsHtml += '<input type="checkbox" class="imapper-contact-select-button" name="contact_id" value="'+contacts[i].id+'" />';
     contactsHtml += '</div>';
     contactsHtml += '<div class="imapper-address-box">';
-    if(contacts[i].display_name){ contactsHtml += contacts[i].display_name + '<br/>'; };
+    if(contacts[i].display_name){ contactsHtml += contacts[i].display_name + '<br/>'; }
     if(contacts[i].birth_date){ contactsHtml += '<strong>'+age+'</strong> - '+contacts[i].birth_date + '<br/>';}
     if(contacts[i].email){ contactsHtml += contacts[i].email + '<br/>'; }
     if(contacts[i].phone){ contactsHtml += contacts[i].phone + '<br/>'; }
@@ -1370,7 +1450,7 @@ function buildContactList(loop) {
   }
   if (contacts.length > loop+200){
     contactsHtml += '<span class="seeMore" id="'+loop+'">see more</span>';
-  };
+  }
   cj('#imapper-contacts-list').append(contactsHtml);
 
 }
@@ -1432,6 +1512,7 @@ function checkForMatch(key,contactIds){
   cj('.imapper-message-box').each(function(i, item) {
     check = cj(this).data('key');
     var messageId = cj(this).attr('id');
+    // can't these two ifs be merged?
     if (key == check) {
       if(cj('.matchbubble.empty',this).length){
         cj.ajax({
@@ -1453,7 +1534,7 @@ function checkForMatch(key,contactIds){
           }
         });
       }
-    };
+    }
   });
   cj("#matchCheck-popup").dialog('close');
 }
