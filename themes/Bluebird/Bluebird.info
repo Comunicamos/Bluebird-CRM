@@ -13,6 +13,7 @@ stylesheets[screen,projection][] = css/style.css
 scripts[] = scripts/message-manager.js
 scripts[] = scripts/civi-header.js
 scripts[] = scripts/general.js
+scripts[] = scripts/hummingbird.js
 
 regions[left]    = Left sidebar
 regions[content] = Content
