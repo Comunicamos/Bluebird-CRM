@@ -43,6 +43,12 @@
 Bluebird v{ts 1=$bbversion}%1.{/ts} Powered by <a href='http://civicrm.org/' target="_blank">CiviCRM</a> {ts 1=$version}%1.{/ts}<br />
 CiviCRM{ts 1='http://www.gnu.org/licenses/agpl-3.0.html'} is openly available under the <a href='%1' target="_blank">GNU Affero General Public License (GNU AGPL)</a>.{/ts}
 </div>
+{literal}
 <script>
-  HummingbirdTracker.track();
+    //user_id isn't set in the template. but... I think it should be...
+    HummingbirdTracker.assign({search_query: window.location.search});
+    HummingbirdTracker.assign({entity_id: 18002});
+    if(typeof(HummingbirdEnv) === "undefined") { var HummingbirdEnv = {}; }
+    HummingbirdTracker.track(HummingbirdEnv);
 </script>
+{/literal}

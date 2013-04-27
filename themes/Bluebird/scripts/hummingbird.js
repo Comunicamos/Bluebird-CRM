@@ -19,12 +19,22 @@ HummingbirdTracker = {
     var params = [];
     for(var key in env) {
       if(env.hasOwnProperty(key)) {
+        // console.log(key,env);
+        // console.log(env.hasOwnProperty(key));
         params.push(encodeURIComponent(key) + "=" + encodeURIComponent(env[key]));
       }
     }
 
     // replace 'localhost:8080' with hummingbird's URL
     var img = new Image();
-    img.src = 'http://localhost:8080/tracking_pixel.gif?' + params.join('&');
+
+    //Hummingbird's PORT HAS TO BE THE SAME 
+    img.src = 'http://localhost:8000/tracking_pixel.gif?' + params.join('&');
+  },
+  assign: function(env) {
+    if(typeof(HummingbirdEnv) === "undefined") {
+      window.HummingbirdEnv = {};
+    }
+    HummingbirdEnv = cj.extend({}, HummingbirdEnv, env);
   }
 };
