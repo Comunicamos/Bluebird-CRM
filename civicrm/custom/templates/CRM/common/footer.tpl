@@ -45,10 +45,14 @@ CiviCRM{ts 1='http://www.gnu.org/licenses/agpl-3.0.html'} is openly available un
 </div>
 {literal}
 <script>
+    if(typeof(HummingbirdEnv) === "undefined") { var HummingbirdEnv = {}; }
+    window.setInterval(function(){
+        console.log(HummingbirdEnv.active_time);
+    }, 1000);
+    HummingbirdTracker.setActiveWatch.start();
     //user_id isn't set in the template. but... I think it should be...
     HummingbirdTracker.assign({search_query: window.location.search});
     HummingbirdTracker.assign({entity_id: 18002});
-    if(typeof(HummingbirdEnv) === "undefined") { var HummingbirdEnv = {}; }
     HummingbirdTracker.track(HummingbirdEnv);
 </script>
 {/literal}

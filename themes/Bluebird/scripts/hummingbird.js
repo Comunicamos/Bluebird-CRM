@@ -35,13 +35,15 @@ HummingbirdTracker = {
     if(typeof(HummingbirdEnv) === "undefined") {
       window.HummingbirdEnv = {};
     }
-    HummingbirdEnv = cj.extend({}, HummingbirdEnv, env);
+    cj.extend(HummingbirdEnv, env);
   },
   setActiveWatch: {
     start: function(){
       // turns on the timer & binding
       this.bind();
       this.timer.setIntervalTimer();
+      // console.log(HummingbirdEnv)
+      // HummingbirdTracker.assign(this.timer.stats);
     },
     stop: function(){
       this.unbind();
@@ -57,7 +59,8 @@ HummingbirdTracker = {
       cj.each(this.eventTypes, function(i, eventType){
         // that.setTrackerStatus(eventType, true);
         that.page.on(eventType, function(event) {
-          that.timer.eventHappened = true;
+          that.timer.stats.eventHappened = true;
+          // console.log(that.timer.stats.eventHappened);
           // console.log(event);
         });
       });
@@ -66,7 +69,7 @@ HummingbirdTracker = {
       var that = this;
       cj.each(this.eventTypes, function(i, eventType) {
           // that.setTrackerStatus(eventType, false);
-          that.timer.eventHappened = false;
+          that.timer.stats.eventHappened = false;
           that.page.off(eventType, function() {});
       });
     },
@@ -78,25 +81,31 @@ HummingbirdTracker = {
       }
     },*/
     timer: {
+      stats: {
+        eventHappened: true, //this will update and be pulled on every websocket pulse
+        timeSinceLastReset: 0
+      },
       intervalId: null, // this is the setInterval pointer...
-      eventHappened: true, //this will update and be pulled on every websocket pulse
-      timeSinceLastReset: 0,
-      idleInterval: 1000, //timeBeforeDeclaringIdle in MS, aka 60 seconds
+      idleInterval: 1, //timeBeforeDeclaringIdle in seconds, aka 1 seconds
       setIntervalTimer: function(){
         var that = this;
         this.intervalId = setInterval(function() {
-          if(that.eventHappened === true) {
+          HummingbirdEnv["active_time"] = {
+            isActive: that.stats.eventHappened,
+            timeSinceLastActivity: that.stats.timeSinceLastReset
+          };
+          if(that.stats.eventHappened === true) {
             // console.log('Event Happened');
-            that.eventHappened = false;
-            that.timeSinceLastReset = 0;
+            that.stats.eventHappened = false;
+            that.stats.timeSinceLastReset= 0;
           }
           else {
             // console.log('No Event Happened');
-            that.eventHappened = false;
-            that.timeSinceLastReset += that.idleInterval;
+            that.stats.eventHappened = false;
+            that.stats.timeSinceLastReset += that.idleInterval;
           }
           // console.log(that);
-        }, this.idleInterval);
+        }, this.idleInterval * 1000);
         // to use the pulse, you'd add change the interval to pulse & on check value add
         // pulse to time since last reset until tSLR > idleInterval
       },
