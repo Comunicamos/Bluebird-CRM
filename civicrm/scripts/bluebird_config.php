@@ -110,15 +110,22 @@ function get_bluebird_instance_config($instance = null, $filename = null)
   $s_filename = $filename;
 
   $firstdot = strpos($instance, '.');
+  $is_ip_address_check = explode(".",$instance);
   if ($firstdot === false) {
     $shortname = $instance;
     $default_base_domain = "crm.nysenate.gov";
+  }
+  // dp - added for local bluebird configs
+  // to only have a ip address
+  else if (count($is_ip_address_check) == 4 && ($is_ip_address_check[0] == "192" || $is_ip_address_check[0] == "10")){
+    $shortname = "bluebird";
+    $default_base_domain = "bluebird";
+    $instance = "bluebird";
   }
   else {
     $shortname = substr($instance, 0, $firstdot);
     $default_base_domain = substr($instance, $firstdot + 1);
   }
-
   $instance_key = 'instance:'.$shortname;
   $bbini = get_bluebird_config($filename);
 
